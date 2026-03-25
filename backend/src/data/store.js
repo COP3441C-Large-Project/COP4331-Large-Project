@@ -1,18 +1,25 @@
+// For hashing, UUIDs, etc.
 import crypto from 'node:crypto';
 import { scoreMatch } from '../services/matching.js';
 
+// Helper func to generate short IDs w/ a prefix
 function id(prefix) {
+  // Generates UUID and takes first 8 chars
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
+// Helper func to get current timestamp in ISO format
 function now() {
   return new Date().toISOString();
 }
 
+// Hashes password using SHA-256(for demo purposes only)
 function hashPassword(password) {
+  // Creates SHA-256 hash object, adds password data, and coverts hash to hext string
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
+// Removes sensitive fields before sending urser to client
 function sanitizeUser(user) {
   return {
     id: user.id,
@@ -25,10 +32,13 @@ function sanitizeUser(user) {
   };
 }
 
+// Seeds initial users (fake database)
 function makeSeedUsers() {
+  // Uses the same timestamp for consistency
   const timestamp = now();
   return [
     {
+      // Static demo user for demo
       id: 'user_demo',
       username: 'demo_user',
       email: 'demo@hottake.app',
@@ -75,6 +85,7 @@ function makeSeedUsers() {
   ];
 }
 
+// Seeds initial chats (fake database)
 function makeSeedChats() {
   return [
     {
@@ -100,41 +111,59 @@ function makeSeedChats() {
   ];
 }
 
+// Main func to create in-memory data store
 export function createStore() {
+  // Initializes users array
   const users = makeSeedUsers();
+  // Initializes chats array
   const chats = makeSeedChats();
+  // Map token
   const sessions = new Map();
 
+  // Finds user by email
   function findUserByEmail(email) {
     return users.find((user) => user.email.toLowerCase() === email.toLowerCase());
   }
 
+  // Finds user by ID
   function findUserById(userId) {
     return users.find((user) => user.id === userId);
   }
 
+  // Gets user from auth token
   function getUserFromToken(token) {
+    // Gets userID from session map
     const userId = sessions.get(token);
+    // Returns user or undefined
     return userId ? findUserById(userId) : undefined;
   }
 
+  // Creates a session (login)
   function createSession(userId) {
+    // Generates session token
     const token = crypto.randomUUID();
+    // Stores mapping
     sessions.set(token, userId);
+    // Returns token to client
     return token;
   }
 
+  // Returns public API of the store
   return {
+    // Registers a new user
     register({ username, email, password }) {
+      // Prevents duplicate emails
       if (findUserByEmail(email)) {
         return { error: 'Email already registered.' };
       }
 
       const timestamp = now();
       const user = {
+        // Generates user ID
         id: id('user'),
         username,
         email,
+        // Stores hashed password
         passwordHash: hashPassword(password),
         bio: '',
         tags: [],
@@ -143,34 +172,43 @@ export function createStore() {
         lastActiveAt: timestamp
       };
 
+      // Adds to (fake) database
       users.push(user);
 
       return {
+        // Auto login after register
         token: createSession(user.id),
+        // Returns safe user object
         user: sanitizeUser(user)
       };
     },
 
+    // Logins user
     login({ email, password }) {
       const user = findUserByEmail(email);
 
+      // Invalid credentials
       if (!user || user.passwordHash !== hashPassword(password)) {
         return { error: 'Invalid email or password.' };
       }
 
+      // Updates activity timestamp
       user.lastActiveAt = now();
 
       return {
+        // Creates session token
         token: createSession(user.id),
         user: sanitizeUser(user)
       };
     },
 
+    // Gets currently logged in user
     getCurrentUser(token) {
       const user = getUserFromToken(token);
       return user ? sanitizeUser(user) : null;
     },
 
+    // Updates user bio and tags
     updateInterests(token, { bio, tags }) {
       const user = getUserFromToken(token);
 
@@ -178,14 +216,19 @@ export function createStore() {
         return { error: 'Unauthorized.' };
       }
 
+      // Cleans bio
       user.bio = bio.trim();
+      // Normalizes tags
+      // lowercase, removes duplicates, max 10 tags
       user.tags = [...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))].slice(0, 10);
+      // Updates timestamps
       user.updatedAt = now();
       user.lastActiveAt = now();
 
       return { user: sanitizeUser(user) };
     },
 
+    // Gets matches for current user
     listMatches(token) {
       const currentUser = getUserFromToken(token);
 
@@ -207,12 +250,15 @@ export function createStore() {
             sharedTerms: match.sharedTerms
           };
         })
+        // Only relevant matches
         .filter((candidate) => candidate.score > 0)
+        // Sorts best first
         .sort((left, right) => right.score - left.score);
 
       return { matches: results };
     },
 
+    // Lists chats for current user
     listChats(token) {
       const currentUser = getUserFromToken(token);
 
@@ -223,7 +269,9 @@ export function createStore() {
       const results = chats
         .filter((chat) => chat.participantIds.includes(currentUser.id))
         .map((chat) => {
+          // Gets other participant
           const otherUserId = chat.participantIds.find((participantId) => participantId !== currentUser.id);
+          // Gets last message
           const otherUser = findUserById(otherUserId);
           const lastMessage = chat.messages.at(-1) ?? null;
           const match = otherUser ? scoreMatch(currentUser, otherUser) : { score: 0, sharedTags: [] };
@@ -240,6 +288,7 @@ export function createStore() {
       return { chats: results };
     },
 
+    // Gets meqssages for a chat
     getChatMessages(token, chatId) {
       const currentUser = getUserFromToken(token);
 
@@ -256,6 +305,7 @@ export function createStore() {
       return { messages: chat.messages };
     },
 
+    // Starts a new chat w/ a match
     startChat(token, matchUserId) {
       const currentUser = getUserFromToken(token);
       const matchUser = findUserById(matchUserId);
@@ -268,6 +318,7 @@ export function createStore() {
         return { error: 'Match user not found.' };
       }
 
+      // Checks if chat already exists
       const existingChat = chats.find((chat) => {
         return chat.participantIds.includes(currentUser.id) && chat.participantIds.includes(matchUser.id);
       });
@@ -288,6 +339,7 @@ export function createStore() {
       return { chatId: chat.id };
     },
 
+    // Sends a message in a chat
     sendMessage(token, chatId, text) {
       const currentUser = getUserFromToken(token);
 
@@ -308,8 +360,11 @@ export function createStore() {
         sentAt: now()
       };
 
+      // Adds a message to chat
       chat.messages.push(message);
+      // Updates chat timestamp
       chat.updatedAt = now();
+      // Updates user activity
       currentUser.lastActiveAt = now();
 
       return { message };
