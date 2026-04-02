@@ -107,7 +107,7 @@ async function handler(request, response) {
       }
 
       // Stores user in database
-      const result = store.register(payload);
+      const result = await store.register(payload);
       // 409 is conflict, 201 is created
       json(response, result.error ? 409 : 201, result);
       return;
@@ -125,7 +125,7 @@ async function handler(request, response) {
       }
 
       // Attempts login
-      const result = store.login(payload);
+      const result = await store.login(payload);
       // 401 is unauthorized, 200 is success
       json(response, result.error ? 401 : 200, result);
       return;

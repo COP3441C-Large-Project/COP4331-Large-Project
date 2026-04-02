@@ -1,5 +1,7 @@
 // For hashing, UUIDs, etc.
 import crypto from 'node:crypto';
+import bcrypt from 'bcrypt';
+import { getDB } from './db.js';
 import { scoreMatch } from '../services/matching.js';
 
 // Helper func to generate short IDs w/ a prefix
@@ -11,12 +13,6 @@ function id(prefix) {
 // Helper func to get current timestamp in ISO format
 function now() {
   return new Date().toISOString();
-}
-
-// Hashes password using SHA-256(for demo purposes only)
-function hashPassword(password) {
-  // Creates SHA-256 hash object, adds password data, and coverts hash to hext string
-  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 // Removes sensitive fields before sending urser to client
@@ -32,91 +28,13 @@ function sanitizeUser(user) {
   };
 }
 
-// Seeds initial users (fake database)
-function makeSeedUsers() {
-  // Uses the same timestamp for consistency
-  const timestamp = now();
-  return [
-    {
-      // Static demo user for demo
-      id: 'user_demo',
-      username: 'demo_user',
-      email: 'demo@hottake.app',
-      passwordHash: hashPassword('password123'),
-      bio: 'I like arguing about movies, philosophy, and why endings matter more than plot twists.',
-      tags: ['film', 'philosophy', 'writing'],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      lastActiveAt: timestamp
-    },
-    {
-      id: 'user_stranger01',
-      username: 'stranger_01',
-      email: 'stranger01@hottake.app',
-      passwordHash: hashPassword('password123'),
-      bio: 'I can talk for hours about auteur cinema, existentialism, and overrated classics.',
-      tags: ['film', 'philosophy', 'art'],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      lastActiveAt: timestamp
-    },
-    {
-      id: 'user_musicnerd',
-      username: 'vinyl_riot',
-      email: 'vinyl@hottake.app',
-      passwordHash: hashPassword('password123'),
-      bio: 'Alt rock is fine, but weird electronic music and music production are where the real fun starts.',
-      tags: ['music', 'production', 'technology'],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      lastActiveAt: timestamp
-    },
-    {
-      id: 'user_policywonk',
-      username: 'policywonk',
-      email: 'policy@hottake.app',
-      passwordHash: hashPassword('password123'),
-      bio: 'I am into politics, startups, and climate conversations that go deeper than headlines.',
-      tags: ['politics', 'climate', 'startups'],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      lastActiveAt: timestamp
-    }
-  ];
-}
-
-// Seeds initial chats (fake database)
-function makeSeedChats() {
-  return [
-    {
-      id: 'chat_demo_stranger',
-      participantIds: ['user_demo', 'user_stranger01'],
-      createdAt: now(),
-      updatedAt: now(),
-      messages: [
-        {
-          id: 'msg_1',
-          senderId: 'user_stranger01',
-          text: 'hi, you’re interested in film too?',
-          sentAt: now()
-        },
-        {
-          id: 'msg_2',
-          senderId: 'user_demo',
-          text: 'yeah, i’ve been trying to expand my film genres lately',
-          sentAt: now()
-        }
-      ]
-    }
-  ];
-}
-
 // Main func to create in-memory data store
 export function createStore() {
-  // Initializes users array
-  const users = makeSeedUsers();
-  // Initializes chats array
-  const chats = makeSeedChats();
+  // Bridge array: populated as users register/login via MongoDB so other
+  // not-yet-migrated methods (listMatches, listChats, etc.) can find them
+  const users = [];
+  // Chats still in-memory until migrated
+  const chats = [];
   // Map token
   const sessions = new Map();
 
@@ -151,20 +69,21 @@ export function createStore() {
   // Returns public API of the store
   return {
     // Registers a new user
-    register({ username, email, password }) {
+    async register({ username, email, password }) {
+      const col = getDB().collection('users');
+
       // Prevents duplicate emails
-      if (findUserByEmail(email)) {
+      const existing = await col.findOne({ email: email.toLowerCase() });
+      if (existing) {
         return { error: 'Email already registered.' };
       }
 
       const timestamp = now();
       const user = {
-        // Generates user ID
         id: id('user'),
         username,
-        email,
-        // Stores hashed password
-        passwordHash: hashPassword(password),
+        email: email.toLowerCase(),
+        passwordHash: await bcrypt.hash(password, 10),
         bio: '',
         tags: [],
         createdAt: timestamp,
@@ -172,31 +91,41 @@ export function createStore() {
         lastActiveAt: timestamp
       };
 
-      // Adds to (fake) database
+      await col.insertOne(user);
+
+      // Keep in-memory copy so other (not-yet-migrated) methods can find this user
       users.push(user);
 
       return {
-        // Auto login after register
         token: createSession(user.id),
-        // Returns safe user object
         user: sanitizeUser(user)
       };
     },
 
     // Logins user
-    login({ email, password }) {
-      const user = findUserByEmail(email);
+    async login({ email, password }) {
+      const col = getDB().collection('users');
+
+      const user = await col.findOne({ email: email.toLowerCase() });
 
       // Invalid credentials
-      if (!user || user.passwordHash !== hashPassword(password)) {
+      if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
         return { error: 'Invalid email or password.' };
       }
 
-      // Updates activity timestamp
+      // Updates activity timestamp in MongoDB
+      await col.updateOne({ id: user.id }, { $set: { lastActiveAt: now() } });
       user.lastActiveAt = now();
 
+      // Keep in-memory copy in sync for other methods
+      const inMemory = users.find((u) => u.id === user.id);
+      if (inMemory) {
+        inMemory.lastActiveAt = user.lastActiveAt;
+      } else {
+        users.push(user);
+      }
+
       return {
-        // Creates session token
         token: createSession(user.id),
         user: sanitizeUser(user)
       };
