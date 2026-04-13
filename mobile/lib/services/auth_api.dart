@@ -96,6 +96,19 @@ class AuthApi {
     return payload['error'] as String? ?? 'Something went wrong.';
   }
 
+  Future<void> sendVerificationEmail(String userId) async {
+  final response = await _client.post(
+    Uri.parse('$baseUrl/api/auth/send-verification'),
+    headers: const {'Content-Type': 'application/json'},
+    body: jsonEncode({'userId': userId}),
+  );
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    final payload = _decodePayload(response);
+    throw AuthApiException(response.statusCode, _messageFromPayload(payload));
+  }
+}
+
   static String _defaultBaseUrl() {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) {
@@ -103,7 +116,7 @@ class AuthApi {
     }
 
     if (kIsWeb) {
-      return 'http://localhost:3001';
+      return 'http://127.0.0.1:3001'; 
     }
 
     switch (defaultTargetPlatform) {
@@ -119,6 +132,9 @@ class AuthApi {
         return 'http://127.0.0.1:3001';
       case TargetPlatform.fuchsia:
         return 'http://127.0.0.1:3001';
+      default:
+        return 'http://167.99.155.122:3001';
     }
   }
 }
+

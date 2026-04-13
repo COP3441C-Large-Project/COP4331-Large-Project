@@ -9,11 +9,18 @@ class AuthController extends ChangeNotifier {
   final AuthApi _api;
   final TokenStore _tokenStore;
 
+
   AuthUser? _user;
   String? _token;
   String? _error;
   bool _isBusy = false;
   bool _isRestoring = true;
+
+  bool _pendingVerification = false;
+  String? _pendingVerificationEmail;
+
+  bool get pendingVerification => _pendingVerification;
+  String? get pendingVerificationEmail => _pendingVerificationEmail;
 
   AuthController({
     required AuthApi api,
@@ -67,8 +74,28 @@ class AuthController extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    await _submit(() => _api.register(username: username, email: email, password: password));
+    await _submit(() => _api.register(
+      username: username,
+      email: email,
+      password: password,
+    ));
+
+    // If _submit succeeded, token is now set — send verification email
+    if (_token != null && _error == null) {
+      print('sending verification, userId: ${_user!.id}');
+      _pendingVerification = true;
+      _pendingVerificationEmail = email;
+      // Fire and forget — don't block or crash if it fails
+      _api.sendVerificationEmail(_user!.id).catchError((_) {});
+      notifyListeners();
+    }
   }
+
+void dismissVerification() {
+  _pendingVerification = false;
+  _pendingVerificationEmail = null;
+  notifyListeners();
+}
 
   Future<void> logout() async {
     await _tokenStore.clear();
@@ -115,3 +142,5 @@ class AuthController extends ChangeNotifier {
     _error = null;
   }
 }
+
+

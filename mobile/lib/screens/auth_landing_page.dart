@@ -18,7 +18,8 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   AuthMode _mode = AuthMode.login;
 
@@ -32,13 +33,9 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   }
 
   void _setMode(AuthMode mode) {
-    if (_mode == mode) {
-      return;
-    }
+    if (_mode == mode) return;
 
-    setState(() {
-      _mode = mode;
-    });
+    setState(() => _mode = mode);
     _formKey.currentState?.reset();
     widget.controller.clearError();
   }
@@ -46,9 +43,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
 
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     widget.controller.clearError();
 
@@ -57,14 +52,13 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      return;
+    } else {
+      await widget.controller.register(
+        username: _usernameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
     }
-
-    await widget.controller.register(
-      username: _usernameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
   }
 
   @override
@@ -73,63 +67,69 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
     final isWide = width >= 900;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F5F2),
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: isWide
-            ? Row(
-                children: [
-                  Expanded(
-                    flex: 38,
-                    child: _BrandPanel(
-                      compact: false,
-                      onSignIn: () => _setMode(AuthMode.login),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 62,
-                    child: _AuthPanel(
-                      mode: _mode,
-                      controller: widget.controller,
-                      formKey: _formKey,
-                      usernameController: _usernameController,
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                      confirmPasswordController: _confirmPasswordController,
-                      onModeChanged: _setMode,
-                      onSubmit: _submit,
-                    ),
-                  ),
-                ],
-              )
-            : SingleChildScrollView(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 360,
-                      width: double.infinity,
-                      child: _BrandPanel(
-                        compact: true,
-                        onSignIn: () => _setMode(AuthMode.login),
-                      ),
-                    ),
-                    _AuthPanel(
-                      mode: _mode,
-                      controller: widget.controller,
-                      formKey: _formKey,
-                      usernameController: _usernameController,
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                      confirmPasswordController: _confirmPasswordController,
-                      onModeChanged: _setMode,
-                      onSubmit: _submit,
-                    ),
-                  ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
+                child: isWide
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: _BrandPanel(
+                              compact: false,
+                              onSignIn: () => _setMode(AuthMode.login),
+                            ),
+                          ),
+                          Expanded(
+                            child: _AuthPanel(
+                              mode: _mode,
+                              controller: widget.controller,
+                              formKey: _formKey,
+                              usernameController: _usernameController,
+                              emailController: _emailController,
+                              passwordController: _passwordController,
+                              confirmPasswordController:
+                                  _confirmPasswordController,
+                              onModeChanged: _setMode,
+                              onSubmit: _submit,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          _BrandPanel(
+                            compact: true,
+                            onSignIn: () => _setMode(AuthMode.login),
+                          ),
+                          _AuthPanel(
+                            mode: _mode,
+                            controller: widget.controller,
+                            formKey: _formKey,
+                            usernameController: _usernameController,
+                            emailController: _emailController,
+                            passwordController: _passwordController,
+                            confirmPasswordController:
+                                _confirmPasswordController,
+                            onModeChanged: _setMode,
+                            onSubmit: _submit,
+                          ),
+                        ],
+                      ),
               ),
+            );
+          },
+        ),
       ),
     );
   }
 }
-
 class _BrandPanel extends StatelessWidget {
   final bool compact;
   final VoidCallback onSignIn;
@@ -279,29 +279,32 @@ class _AuthPanel extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       color: const Color(0xFFF7F5F2),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 isLogin ? 'sign in' : 'create account',
                 style: const TextStyle(
                   fontSize: 34,
-                  height: 1,
                   fontWeight: FontWeight.w400,
                   color: Color(0xFF1A1714),
                 ),
               ),
               const SizedBox(height: 18),
+
               _ModeTabs(
                 mode: mode,
                 onModeChanged: onModeChanged,
               ),
+
               const SizedBox(height: 24),
+
               Form(
                 key: formKey,
                 child: Column(
@@ -311,72 +314,60 @@ class _AuthPanel extends StatelessWidget {
                       _LabeledField(
                         label: 'USERNAME',
                         controller: usernameController,
-                        hintText: 'your handle',
-                        textInputAction: TextInputAction.next,
                         onChanged: () => controller.clearError(),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Username is required.';
-                          }
-                          return null;
-                        },
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? 'Username is required.'
+                                : null,
                       ),
                       const SizedBox(height: 14),
                     ],
+
                     _LabeledField(
                       label: 'EMAIL',
                       controller: emailController,
-                      hintText: 'you@example.com',
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: isLogin ? TextInputAction.next : TextInputAction.next,
                       onChanged: () => controller.clearError(),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email is required.';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
+                              ? 'Email is required.'
+                              : null,
                     ),
+
                     const SizedBox(height: 14),
+
                     _LabeledField(
                       label: 'PASSWORD',
                       controller: passwordController,
                       obscureText: true,
-                      textInputAction: isLogin ? TextInputAction.done : TextInputAction.next,
                       onChanged: () => controller.clearError(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Password is required.';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          (value == null || value.isEmpty)
+                              ? 'Password is required.'
+                              : null,
                     ),
+
                     if (!isLogin) ...[
                       const SizedBox(height: 14),
                       _LabeledField(
                         label: 'CONFIRM PASSWORD',
                         controller: confirmPasswordController,
                         obscureText: true,
-                        textInputAction: TextInputAction.done,
                         onChanged: () => controller.clearError(),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please confirm your password.';
-                          }
-
                           if (value != passwordController.text) {
                             return 'Passwords do not match.';
                           }
-
                           return null;
                         },
                       ),
                     ],
+
                     const SizedBox(height: 18),
+
                     if (controller.error != null) ...[
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFE9E8),
                           borderRadius: BorderRadius.circular(14),
@@ -392,36 +383,30 @@ class _AuthPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
                     ],
+
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: controller.isBusy ? null : onSubmit,
+                        onPressed:
+                            controller.isBusy ? null : () => onSubmit(),
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFFE24B4A),
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: controller.isBusy
                             ? const SizedBox(
                                 height: 18,
                                 width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2.2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : Text(isLogin ? 'sign in' : 'create account'),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Center(
-                      child: Text(
-                        'your identity is never shared with matches',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
+
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

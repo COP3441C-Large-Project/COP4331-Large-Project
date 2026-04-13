@@ -93,10 +93,16 @@ async function handler(request, response) {
   }
 
   // Handles CORS preflight requests
-  if (request.method === 'OPTIONS'){
-    json(response, 204, {});
-    return;
-  }
+  if (request.method === 'OPTIONS') {
+  response.writeHead(204, {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Content-Length': '0',
+  });
+  response.end();
+  return;
+}
 
   // Parses URL
   const url = new URL(request.url, `http://localhost:${PORT}`);
