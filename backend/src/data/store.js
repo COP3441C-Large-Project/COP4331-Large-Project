@@ -358,7 +358,7 @@ export function createStore() {
         { $set: { emailVerified: true }, $unset: { verifyToken: '', verifyTokenExpiry: '' } }
       );
  
-      return { token: createSession(user.id), user: sanitizeUser({ ...user, emailVerified: true }) };
+      return { token: signToken(user.id), user: sanitizeUser({ ...user, emailVerified: true }) };
     },
  
     // Sends forgot password email
@@ -418,7 +418,7 @@ export function createStore() {
         }
       );
  
-      return { token: createSession(user.id), user: sanitizeUser(user) };
+      return { token: signToken(user.id), user: sanitizeUser(user) };
     },
  
   };
