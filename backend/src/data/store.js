@@ -2,7 +2,18 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { getDB } from './db.js';
 import { scoreMatch } from '../services/matching.js';
+import jwt from 'jsonwebtoken';
 
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? '7d';
+
+if (!JWT_SECRET){
+  throw new Error('JWT_SECRET environment variable is required.');
+}
+
+function signToken(userId){
+  return jwt.sign({sub: userId}, JWT_SECRET, {expiresIn: JWT_EXPIRES_IN});
+}
 // Helper func to generate short IDs w/ a prefix
 function id(prefix) {
   return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
@@ -27,26 +38,29 @@ function sanitizeUser(user) {
 }
 
 export function createStore() {
-  // Sessions stay in-memory (token → userId)
-  const sessions = new Map();
-
+  
+  //Gets user from auth token 
+  async function getUserFromToken(token){
+    if (!token)
+      return undefined;
+    try {
+      const payload = jwt.verify(token, JWT_SECRET);
+      const userId = typeof payload === 'object' ? payload.sub: undefined;
+      if (typeof userId !== 'string')
+        return undefined;
+      return findUserById(userId);
+    } catch {
+      return undefined;
+    }
+  }
+  
   // Finds user by ID from MongoDB
   async function findUserById(userId) {
     return getDB().collection('users').findOne({ id: userId });
   }
 
-  // Gets user from auth token
-  async function getUserFromToken(token) {
-    const userId = sessions.get(token);
-    return userId ? findUserById(userId) : undefined;
-  }
 
-  // Creates a session token
-  function createSession(userId) {
-    const token = crypto.randomUUID();
-    sessions.set(token, userId);
-    return token;
-  }
+
 
   return {
     // Registers a new user
@@ -76,7 +90,7 @@ export function createStore() {
       await col.insertOne(user);
 
       return {
-        token: createSession(user.id),
+        token: signToken(user.id),
         user: sanitizeUser(user)
       };
     },
@@ -100,7 +114,7 @@ export function createStore() {
       await col.updateOne({ id: user.id }, { $set: { lastActiveAt: now() } });
 
       return {
-        token: createSession(user.id),
+        token: signToken(user.id),
         user: sanitizeUser(user)
       };
     },
@@ -344,7 +358,7 @@ export function createStore() {
         { $set: { emailVerified: true }, $unset: { verifyToken: '', verifyTokenExpiry: '' } }
       );
  
-      return { token: createSession(user.id), user: sanitizeUser({ ...user, emailVerified: true }) };
+      return { token: signToken(user.id), user: sanitizeUser({ ...user, emailVerified: true }) };
     },
  
     // Sends forgot password email
@@ -404,7 +418,7 @@ export function createStore() {
         }
       );
  
-      return { token: createSession(user.id), user: sanitizeUser(user) };
+      return { token: signToken(user.id), user: sanitizeUser(user) };
     },
  
   };
