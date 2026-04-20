@@ -77,10 +77,10 @@ jobs:
             git pull origin main
             cd frontend
             npm install
-            npm run build
+            VITE_API_URL=http://4331project.xyz npm run build
             cd ../backend
             npm install
-            pm2 restart all || pm2 start src/server.js --name backend
+            pm2 restart backend || pm2 start ecosystem.config.cjs
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          # Add any other backend secrets your server needs
+          
