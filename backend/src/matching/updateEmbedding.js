@@ -9,10 +9,16 @@ const __dirname = path.dirname(__filename);
 export async function updateEmbedding(params) {
   return new Promise((resolve, reject) => {
     const pythonScript = path.join(__dirname, 'update.py');
-    const venvPython = process.platform === 'win32'
-      ? path.join(__dirname, '1env', 'Scripts', 'python.exe')
-      : path.join(__dirname, '1env', 'bin', 'python');
-    const pythonCommand = fs.existsSync(venvPython) ? venvPython : 'python';
+    const configuredPython = process.env.MATCHING_PYTHON_PATH;
+    const candidateInterpreters = [
+      configuredPython,
+      '/home/ivie/COP4331-Large-Project/backend/src/.env/bin/python',
+      process.platform === 'win32'
+        ? path.join(__dirname, '1env', 'Scripts', 'python.exe')
+        : path.join(__dirname, '1env', 'bin', 'python'),
+    ].filter(Boolean);
+
+    const pythonCommand = candidateInterpreters.find((candidate) => fs.existsSync(candidate)) ?? 'python';
 
     const pythonProcess = spawn(pythonCommand, [
       pythonScript,
