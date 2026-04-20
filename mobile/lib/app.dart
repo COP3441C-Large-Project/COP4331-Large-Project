@@ -6,6 +6,7 @@ import 'screens/auth_landing_page.dart';
 import 'screens/matches_page.dart';
 import 'services/matches_api.dart';
 import 'services/socket_service.dart';
+import 'screens/interests_page.dart';
 
 class HotTakeApp extends StatelessWidget {
   final AuthController controller;
@@ -271,7 +272,10 @@ class _AppShellState extends State<_AppShell> {
       case 1:
         return const _PlaceholderPage(label: 'how it works');
       case 2:
-        return const _PlaceholderPage(label: 'interests');
+        return InterestsPage(
+          authController: widget.controller,
+          onSubmitted: () => setState(() => _selectedIndex = 3),
+          );
       case 3:
         return MatchesPage(
           matchesController: _matchesController,
