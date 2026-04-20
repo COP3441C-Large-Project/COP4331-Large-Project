@@ -6,12 +6,28 @@ import { URL } from 'node:url';
 // Acts like a fake database
 import { createStore } from './data/store.js';
 import { connectDB } from './data/db.js';
+import { MatchingService } from './services/matching.js';
 
 if (!process.env.MONGODB_URI) {
   console.error('Error: MONGODB_URI environment variable is not set.');
   process.exit(1);
 }
 
+//TODO: pull DB on map, for matching logic (and more maybe).
+// MAP(userId => { userupdate fields})
+//pull DB in map 
+// User ERD:
+// User {
+//   id: string;
+//   username: string;
+//   email: string;
+//   passwordHash: string;
+//   UserProfile : Float32Array(384);
+//   TopicCount: int;
+//   lastUpdateTimestamp: Date;
+//   lastEmbedding: Float32Array(384);
+//   lastActiveTimestamp: Date;
+//   creationTimestamp: Date;)
 import sgMail from '@sendgrid/mail';
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
  
@@ -32,6 +48,7 @@ const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? '127.0.0.1';
 // Initializes the data store, which holds users, chats, and matches in memory
 const store = createStore();
+const matchingService = new MatchingService();
 
 // Helper func to send JSON responses back to the client
 function json(response, statusCode, payload){
@@ -226,7 +243,32 @@ async function handler(request, response) {
 
       // Updates data
       const result = await store.updateInterests(token, { bio, tags });
-      json(response, result.error ? 401 : 200, result);
+      if (result.error) {
+        json(response, 401, result);
+        return;
+      }
+
+      const matchingResult = await matchingService.updateUserAndFindMatches({
+        userId: result.user.id,
+        bio,
+        tags,
+      });
+
+      if (matchingResult.error) {
+        json(response, 400, matchingResult);
+        return;
+      }
+
+      json(response, 200, {
+        ...result,
+        embeddingUpdate: {
+          skipped: matchingResult.skipped,
+          similarity: matchingResult.similarity,
+          updateCoefficient: matchingResult.updateCoefficient,
+        },
+        matchInput: matchingResult.matchInput,
+        matches: matchingResult.matches,
+      });
       return;
     }
 
@@ -329,6 +371,9 @@ io.on('connection', async (socket) => {
 });
 
 connectDB()
+  .then(() => {
+    return matchingService.init();
+  })
   .then(() => {
     server.listen(PORT, HOST, () => {
       console.log(`Hot Take backend listening on http://${HOST}:${PORT}`);

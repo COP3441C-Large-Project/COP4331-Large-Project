@@ -98,20 +98,30 @@ def process_update(data: Dict[str, Any]) -> Dict[str, Any]:
         )
         new_prompt = data["newPrompt"]
         last_update_timestamp = float(data["lastUpdateTimestamp"])
-        last_embedding = np.array(data["lastEmbedding"], dtype=np.float32)
+        raw_last_embedding = data.get("lastEmbedding")
+        last_embedding = (
+            None
+            if raw_last_embedding is None
+            else np.array(raw_last_embedding, dtype=np.float32)
+        )
         
         # Get new embedding for the new prompt
         topic_embedding = model.encode(new_prompt, convert_to_numpy=True)
         topic_embedding = topic_embedding / np.linalg.norm(topic_embedding)
         
         # Calculate similarity between last embedding and new embedding
-        similarity = calculate_similarity(last_embedding, topic_embedding)
+        similarity = (
+            None
+            if last_embedding is None
+            else calculate_similarity(last_embedding, topic_embedding)
+        )
         
         # Check if similarity is above threshold - if so, skip update
-        if similarity >= SIMILARITY_THRESHOLD:
+        if similarity is not None and similarity >= SIMILARITY_THRESHOLD:
             return {
                 "success": True,
                 "updatedEmbedding": last_embedding.tolist(),
+                "topicEmbedding": topic_embedding.tolist(),
                 "skipped": True,
                 "similarity": similarity,
                 "reason": f"Similarity {similarity:.4f} exceeds threshold {SIMILARITY_THRESHOLD}"
@@ -134,6 +144,7 @@ def process_update(data: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "success": True,
             "updatedEmbedding": updated_embedding.tolist(),
+            "topicEmbedding": topic_embedding.tolist(),
             "skipped": False,
             "similarity": similarity,
             "updateCoefficient": float(coefficient)
