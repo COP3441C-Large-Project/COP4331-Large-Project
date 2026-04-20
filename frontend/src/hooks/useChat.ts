@@ -146,7 +146,7 @@ export function useChat({ chatId, token, userId, onMessage }: UseChatOptions): U
       if (!content.trim() || !chatId || !socketRef.current) return;
 
       const optimistic: Message = {
-        id: crypto.randomUUID(),
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         senderId: userId,
         content: content.trim(),
         timestamp: new Date(),
