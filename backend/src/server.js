@@ -27,7 +27,6 @@ const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? '0.0.0.0';
 const CLIENT_URL = process.env.APP_URL ?? 'http://localhost:5173';
 
-// --- NEW DYNAMIC CORS LOGIC ---
 const ALLOWED_ORIGINS = [
   CLIENT_URL,
   'http://localhost:5173',
@@ -39,21 +38,17 @@ const ALLOWED_ORIGINS = [
 
 function getAllowOrigin(request) {
   const origin = request.headers.origin;
-  // If the origin is in our whitelist, return it. 
-  // Otherwise, fallback to the main CLIENT_URL.
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     return origin;
   }
   return CLIENT_URL;
 }
-// ------------------------------
 
 const store = createStore();
 const matchingService = new MatchingService();
 
 function json(request, response, statusCode, payload) {
   const allowOrigin = getAllowOrigin(request);
-  
   response.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': allowOrigin,
@@ -88,7 +83,6 @@ async function handler(request, response) {
     return;
   }
 
-  // UPDATED OPTIONS HANDLER
   if (request.method === 'OPTIONS') {
     const allowOrigin = getAllowOrigin(request);
     response.writeHead(204, {
@@ -208,6 +202,19 @@ async function handler(request, response) {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/chats') {
+      const result = await store.listChats(token);
+      json(request, response, result.error ? 401 : 200, result);
+      return;
+    }
+
+    const startChatMatch = url.pathname.match(/^\/api\/matches\/([^/]+)\/start-chat$/);
+    if (request.method === 'POST' && startChatMatch) {
+      const result = await store.startChat(token, startChatMatch[1]);
+      json(request, response, result.error ? 404 : 201, result);
+      return;
+    }
+
     const messagesMatch = url.pathname.match(/^\/api\/chats\/([^/]+)\/messages$/);
     if (request.method === 'GET' && messagesMatch) {
       const result = await store.getChatMessages(token, messagesMatch[1]);
@@ -233,7 +240,6 @@ const server = createServer(handler);
 
 const io = new Server(server, {
   cors: {
-    // Dynamic Origin for Socket.io
     origin: (origin, callback) => {
       if (!origin || ALLOWED_ORIGINS.includes(origin)) {
         callback(null, true);
