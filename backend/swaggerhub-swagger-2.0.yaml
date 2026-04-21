@@ -3,11 +3,11 @@ info:
   title: Hot Take Backend API
   version: 1.0.0
   description: |
-    Swagger 2.0 presentation version of the Hot Take backend API.
+    Swagger 2.0 definition for the Hot Take backend API.
 
-    Replace the host, basePath, and schemes values with your deployed backend
-    before presenting in SwaggerHub or Swagger UI.
-host: localhost:3001
+    This file is ready to import into SwaggerHub or Swagger UI and is configured
+    to send requests to the deployed backend at `http://4331project.xyz`.
+host: 4331project.xyz
 basePath: /
 schemes:
   - http
@@ -54,6 +54,7 @@ definitions:
       - id
       - username
       - email
+      - emailVerified
       - bio
       - tags
       - createdAt
@@ -69,6 +70,9 @@ definitions:
         type: string
         format: email
         example: test@example.com
+      emailVerified:
+        type: boolean
+        example: true
       bio:
         type: string
         example: I want to debate whether modern horror is better than prestige drama.
@@ -129,6 +133,32 @@ definitions:
       token:
         type: string
         example: 2ddbc58e-1122-4455-8899-4f21a3bf6e91
+      user:
+        $ref: '#/definitions/User'
+  RegisterResponse:
+    type: object
+    required:
+      - message
+      - user
+    properties:
+      message:
+        type: string
+        example: Account created. Check your email to verify your account before signing in.
+      user:
+        $ref: '#/definitions/User'
+      verificationUrl:
+        type: string
+        description: Verification link returned when the backend is configured to expose it for testing.
+        example: http://4331project.xyz/verify-email?token=sample-verification-token
+  VerifyEmailResponse:
+    type: object
+    required:
+      - message
+      - user
+    properties:
+      message:
+        type: string
+        example: Your email has been verified. You can sign in now.
       user:
         $ref: '#/definitions/User'
   CurrentUserResponse:
@@ -339,13 +369,42 @@ paths:
         201:
           description: User created successfully
           schema:
-            $ref: '#/definitions/AuthSuccessResponse'
+            $ref: '#/definitions/RegisterResponse'
+        200:
+          description: Existing unverified account resent verification email
+          schema:
+            $ref: '#/definitions/RegisterResponse'
         400:
           description: Missing required fields
           schema:
             $ref: '#/definitions/ErrorResponse'
         409:
           description: Email already exists
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        500:
+          description: Unexpected server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /api/auth/verify-email:
+    get:
+      tags:
+        - Auth
+      summary: Verify a user's email address using the emailed token
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: query
+          description: Email verification token from the verification link
+          required: true
+          type: string
+      responses:
+        200:
+          description: Email verified successfully
+          schema:
+            $ref: '#/definitions/VerifyEmailResponse'
+        400:
+          description: Missing, invalid, or expired verification token
           schema:
             $ref: '#/definitions/ErrorResponse'
         500:
@@ -475,12 +534,8 @@ paths:
           description: Chat created, or existing chat returned
           schema:
             $ref: '#/definitions/StartChatResponse'
-        401:
-          description: Missing or invalid bearer token
-          schema:
-            $ref: '#/definitions/ErrorResponse'
         404:
-          description: Matched user not found
+          description: Missing or invalid bearer token, or matched user not found
           schema:
             $ref: '#/definitions/ErrorResponse'
         500:
@@ -527,12 +582,8 @@ paths:
           description: Messages in the chat
           schema:
             $ref: '#/definitions/ChatMessagesResponse'
-        401:
-          description: Missing or invalid bearer token
-          schema:
-            $ref: '#/definitions/ErrorResponse'
         404:
-          description: Chat not found
+          description: Missing or invalid bearer token, or chat not found
           schema:
             $ref: '#/definitions/ErrorResponse'
         500:
@@ -567,12 +618,8 @@ paths:
           description: Missing required text
           schema:
             $ref: '#/definitions/ErrorResponse'
-        401:
-          description: Missing or invalid bearer token
-          schema:
-            $ref: '#/definitions/ErrorResponse'
         404:
-          description: Chat not found
+          description: Missing or invalid bearer token, or chat not found
           schema:
             $ref: '#/definitions/ErrorResponse'
         500:
