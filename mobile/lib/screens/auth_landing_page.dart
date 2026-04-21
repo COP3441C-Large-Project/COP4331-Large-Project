@@ -64,9 +64,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   }
 
   void _setMode(AuthMode mode) {
-    if (_mode == mode) {
-      return;
-    }
+    if (_mode == mode) return;
     setState(() => _mode = mode);
     _formKey.currentState?.reset();
     widget.controller.clearError();
@@ -74,9 +72,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
 
   Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     widget.controller.clearError();
 
@@ -175,6 +171,8 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   }
 }
 
+// ── Landing hero ──────────────────────────────────────────────────────────────
+
 class _LandingHeroScreen extends StatelessWidget {
   final VoidCallback onSignIn;
   final VoidCallback onSignUp;
@@ -183,17 +181,26 @@ class _LandingHeroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: _HotTakePalette.red,
+      // ── FIX: wrap the whole body in a SingleChildScrollView so that on
+      //    short devices the red section can scroll rather than overflow.
+      //    The two sections now size to their content (no more Expanded/flex),
+      //    and the orange section uses a minHeight constraint so it always
+      //    looks good on tall devices too.
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              flex: 5,
-              child: Container(
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Red hero section ─────────────────────────────────────────
+              Container(
                 width: double.infinity,
                 color: _HotTakePalette.red,
-                padding: const EdgeInsets.fromLTRB(26, 28, 26, 20),
+                padding: const EdgeInsets.fromLTRB(26, 28, 26, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -230,7 +237,7 @@ class _LandingHeroScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const _Quip(
-                      title: 'ML Matched',
+                      title: 'Matched',
                       body: 'by shared interests, not looks',
                     ),
                     const SizedBox(height: 12),
@@ -241,69 +248,78 @@ class _LandingHeroScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-            Expanded(
-              flex: 4,
-              child: Container(
-                width: double.infinity,
-                color: _HotTakePalette.orange,
-                padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ALREADY HAVE AN ACCOUNT?',
-                      style: GoogleFonts.dmMono(
-                        color: _HotTakePalette.brown,
-                        fontSize: 11,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _HoverActionButton(
-                      label: 'sign in',
-                      backgroundColor: _HotTakePalette.brown,
-                      textColor: _HotTakePalette.orange,
-                      onTap: onSignIn,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'NEW USER?',
-                      style: GoogleFonts.dmMono(
-                        color: _HotTakePalette.brown,
-                        fontSize: 11,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _HoverActionButton(
-                      label: 'sign up',
-                      backgroundColor: Colors.white,
-                      textColor: _HotTakePalette.brown,
-                      onTap: onSignUp,
-                    ),
-                    const Spacer(),
-                    Center(
-                      child: Text(
-                        'hot take · interest-based matchmaking',
-                        textAlign: TextAlign.center,
+
+              // ── Orange CTA section ───────────────────────────────────────
+              ConstrainedBox(
+                // Ensures the orange section fills at least 40 % of screen
+                // height on tall devices, while still shrinking on short ones.
+                constraints: BoxConstraints(
+                  minHeight: screenHeight * 0.40,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  color: _HotTakePalette.orange,
+                  padding: const EdgeInsets.fromLTRB(26, 28, 26, 36),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'ALREADY HAVE AN ACCOUNT?',
                         style: GoogleFonts.dmMono(
-                          color: _HotTakePalette.brown.withValues(alpha: 0.75),
+                          color: _HotTakePalette.brown,
                           fontSize: 11,
-                          fontStyle: FontStyle.italic,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      _HoverActionButton(
+                        label: 'sign in',
+                        backgroundColor: _HotTakePalette.brown,
+                        textColor: _HotTakePalette.orange,
+                        onTap: onSignIn,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'NEW USER?',
+                        style: GoogleFonts.dmMono(
+                          color: _HotTakePalette.brown,
+                          fontSize: 11,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _HoverActionButton(
+                        label: 'sign up',
+                        backgroundColor: Colors.white,
+                        textColor: _HotTakePalette.brown,
+                        onTap: onSignUp,
+                      ),
+                      const SizedBox(height: 32),
+                      Center(
+                        child: Text(
+                          'hot take · interest-based matchmaking',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmMono(
+                            color: _HotTakePalette.brown.withValues(alpha: 0.75),
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ── Quip ──────────────────────────────────────────────────────────────────────
 
 class _Quip extends StatelessWidget {
   final String title;
@@ -336,6 +352,8 @@ class _Quip extends StatelessWidget {
     );
   }
 }
+
+// ── Auth form screen ──────────────────────────────────────────────────────────
 
 class _AuthFormScreen extends StatelessWidget {
   final AuthMode mode;
@@ -432,9 +450,7 @@ class _AuthFormScreen extends StatelessWidget {
                             onChanged: controller.clearError,
                             validator: (value) {
                               final email = value?.trim() ?? '';
-                              if (email.isEmpty) {
-                                return 'Email is required.';
-                              }
+                              if (email.isEmpty) return 'Email is required.';
                               final emailPattern =
                                   RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
                               if (!emailPattern.hasMatch(email)) {
@@ -523,9 +539,7 @@ class _AuthFormScreen extends StatelessWidget {
                                       ),
                                     )
                                   : Text(
-                                      isLogin
-                                          ? 'sign in'
-                                          : 'create account',
+                                      isLogin ? 'sign in' : 'create account',
                                       style: GoogleFonts.dmMono(),
                                     ),
                             ),
@@ -559,6 +573,8 @@ class _AuthFormScreen extends StatelessWidget {
     );
   }
 }
+
+// ── Forgot password screen ────────────────────────────────────────────────────
 
 class _ForgotScreen extends StatelessWidget {
   final TextEditingController emailController;
@@ -653,6 +669,8 @@ class _ForgotScreen extends StatelessWidget {
   }
 }
 
+// ── Forgot sent screen ────────────────────────────────────────────────────────
+
 class _ForgotSentScreen extends StatelessWidget {
   final String email;
   final VoidCallback onBack;
@@ -705,6 +723,8 @@ class _ForgotSentScreen extends StatelessWidget {
   }
 }
 
+// ── Mode tabs ─────────────────────────────────────────────────────────────────
+
 class _ModeTabs extends StatelessWidget {
   final AuthMode mode;
   final ValueChanged<AuthMode> onModeChanged;
@@ -743,6 +763,8 @@ class _ModeTabs extends StatelessWidget {
     );
   }
 }
+
+// ── Tab button ────────────────────────────────────────────────────────────────
 
 class _TabButton extends StatelessWidget {
   final String label;
@@ -783,6 +805,8 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
+
+// ── Labeled text field ────────────────────────────────────────────────────────
 
 class _LabeledField extends StatelessWidget {
   final String label;
@@ -846,7 +870,8 @@ class _LabeledField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: _HotTakePalette.red, width: 1.5),
+              borderSide:
+                  const BorderSide(color: _HotTakePalette.red, width: 1.5),
             ),
           ),
         ),
@@ -854,6 +879,8 @@ class _LabeledField extends StatelessWidget {
     );
   }
 }
+
+// ── Hover action button ───────────────────────────────────────────────────────
 
 class _HoverActionButton extends StatefulWidget {
   final String label;

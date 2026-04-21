@@ -24,27 +24,27 @@ const AuthPage: React.FC = () => {
             </h1>
           </div>
 
-          <p className="text-sm font-light opacity-85 tracking-wide lowercase">match based on shared interests.</p>
+          <p className="text-sm font-light tracking-wide lowercase text-white">match based on shared interests.</p>
           <p className="text-white/40">────────────────────</p>
 
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] font-light uppercase tracking-[0.2em] opacity-65">No Profiles</p>
-              <p className="text-sm font-light opacity-90 whitespace-nowrap">anonymous by default</p>
+              <p className="text-[10px] font-light uppercase tracking-[0.2em] text-[#f5c4c4]">No Profiles</p>
+              <p className="text-sm font-light text-white whitespace-nowrap">anonymous by default</p>
             </div>
             <div>
-              <p className="text-[10px] font-light uppercase tracking-[0.2em] opacity-65">ML Matched</p>
-              <p className="text-sm font-light opacity-90 whitespace-nowrap">by shared interests, not looks</p>
+              <p className="text-[10px] font-light uppercase tracking-[0.2em] text-[#f5c4c4]">Matched</p>
+              <p className="text-sm font-light text-white whitespace-nowrap">by shared interests, not looks</p>
             </div>
             <div>
-              <p className="text-[10px] font-light uppercase tracking-[0.2em] opacity-65">Low Commitment</p>
-              <p className="text-sm font-light opacity-90 whitespace-nowrap">talk when you want. leave when you don't.</p>
+              <p className="text-[10px] font-light uppercase tracking-[0.2em] text-[#f5c4c4]">Low Commitment</p>
+              <p className="text-sm font-light text-white whitespace-nowrap">talk when you want. leave when you don't.</p>
             </div>
           </div>
         </div>
 
         <div className="h-[30%] bg-[#EF9F27] pl-8 pr-4 text-left flex flex-col items-start justify-center gap-3">
-          <p className="text-[#4A1B0C]">ALREADY HAVE AN ACCOUNT?</p>
+          <p className="text-[#4A1B0C] font-medium">ALREADY HAVE AN ACCOUNT?</p>
           <button
             type="button"
             onClick={() => setActiveTab("login")}
@@ -52,7 +52,7 @@ const AuthPage: React.FC = () => {
           >
             sign in →
           </button>
-          <p className="text-[#4A1B0C] italic text-xs font-light mt-3 opacity-80">hot take · interest-based matchmaking</p>
+          <p className="text-[#4A1B0C] italic text-xs font-light mt-3">hot take · interest-based matchmaking</p>
         </div>
       </aside>
 

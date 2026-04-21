@@ -15,7 +15,7 @@ const SERVER_URL = import.meta.env.VITE_API_URL;
 
 const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
   const navigate = useNavigate();
-  const { login, register, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError } = useAuth();
   const [view, setView] = useState<AuthView>("main");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -24,7 +24,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  // After register, show "check your email" state
   const [pendingVerification, setPendingVerification] = useState(false);
 
   const submitLabel = activeTab === "login" ? "sign in" : "create account";
@@ -76,7 +75,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
       const data = await res.json();
       if (data.error) { setFormError(data.error); return; }
 
-      // Send verification email
       await fetch(`${SERVER_URL}/api/auth/send-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -110,19 +108,24 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
     }
   };
 
-  // ── Pending email verification state ─────────────────────────────────────
+  const mutedText = "text-[#5c5752]";
+  const inputClass = "w-full rounded-lg border border-[#D3D1C7] bg-[#F7F7F5] px-4 py-3 text-[#1a1714] outline-none transition placeholder:text-[#6b6b64] focus:border-[#EF9F27]";
+  const labelClass = `mb-2 block text-[10px] font-light uppercase tracking-[0.2em] ${mutedText}`;
+  const gridBg = "linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)";
+
+  // ── Pending email verification state ──────────────────────────────────────
   if (pendingVerification) {
     return (
       <div className="flex-1 min-h-screen flex items-start justify-center bg-white px-8 pt-20"
-        style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)", backgroundSize: "60px 60px" }}
+        style={{ backgroundImage: gridBg, backgroundSize: "60px 60px" }}
       >
         <div className="flex w-full max-w-md flex-col gap-4 pt-8">
           <h2 className="text-3xl font-normal lowercase text-black">check your email</h2>
-          <p className="text-sm text-[#888780]">
+          <p className={`text-sm ${mutedText}`}>
             we sent a verification link to <span className="text-black">{email}</span>.
             click it to activate your account.
           </p>
-          <p className="text-xs italic text-[#888780]">
+          <p className={`text-xs italic ${mutedText}`}>
             didn't get it? check your spam folder or{" "}
             <button className="underline" onClick={() => setPendingVerification(false)}>
               try again
@@ -134,20 +137,20 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
     );
   }
 
-  // ── Forgot password sent state ────────────────────────────────────────────
+  // ── Forgot password sent state ─────────────────────────────────────────────
   if (view === "forgot-sent") {
     return (
       <div className="flex-1 min-h-screen flex items-start justify-center bg-white px-8 pt-20"
-        style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)", backgroundSize: "60px 60px" }}
+        style={{ backgroundImage: gridBg, backgroundSize: "60px 60px" }}
       >
         <div className="flex w-full max-w-md flex-col gap-4 pt-8">
           <h2 className="text-3xl font-normal lowercase text-black">check your email</h2>
-          <p className="text-sm text-[#888780]">
+          <p className={`text-sm ${mutedText}`}>
             if an account exists for <span className="text-black">{forgotEmail}</span>,
             we sent a password reset link. it expires in 1 hour.
           </p>
           <button
-            className="text-sm text-[#888780] underline text-left"
+            className={`text-sm ${mutedText} underline text-left`}
             onClick={() => { setView("main"); setForgotEmail(""); }}
           >
             ← back to sign in
@@ -157,30 +160,31 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
     );
   }
 
-  // ── Forgot password form ──────────────────────────────────────────────────
+  // ── Forgot password form ───────────────────────────────────────────────────
   if (view === "forgot") {
     return (
       <div className="flex-1 min-h-screen flex items-start justify-center bg-white px-8 pt-20"
-        style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)", backgroundSize: "60px 60px" }}
+        style={{ backgroundImage: gridBg, backgroundSize: "60px 60px" }}
       >
         <div className="flex w-full max-w-md flex-col gap-6 pt-8">
           <div>
             <h2 className="text-3xl font-normal lowercase text-black mb-2">forgot password</h2>
-            <p className="text-sm text-[#888780]">enter your email and we'll send a reset link.</p>
+            <p className={`text-sm ${mutedText}`}>enter your email and we'll send a reset link.</p>
           </div>
 
           <div>
-            <label className="mb-2 block text-[10px] font-light uppercase tracking-[0.2em] text-[#888780]">EMAIL</label>
+            <label htmlFor="forgot-email" className={labelClass}>EMAIL</label>
             <input
+              id="forgot-email"
               type="email"
               value={forgotEmail}
               onChange={(e) => { setForgotEmail(e.target.value); setFormError(null); }}
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-[#D3D1C7] bg-[#F7F7F5] px-4 py-3 text-[#888780] outline-none transition placeholder:text-[#888780] focus:border-[#EF9F27]"
+              className={inputClass}
             />
           </div>
 
-          {formError && <p className="text-sm text-[#B02A2A]">{formError}</p>}
+          {formError && <p className="text-sm text-[#B02A2A]" role="alert">{formError}</p>}
 
           <button
             onClick={handleForgotPassword}
@@ -191,7 +195,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
           </button>
 
           <button
-            className="text-sm text-[#888780] underline text-left"
+            className={`text-sm ${mutedText} underline text-left`}
             onClick={() => { setView("main"); setFormError(null); }}
           >
             ← back to sign in
@@ -201,96 +205,115 @@ const AuthForm: React.FC<AuthFormProps> = ({ activeTab, onTabChange }) => {
     );
   }
 
-  // ── Main login/register form ──────────────────────────────────────────────
+  // ── Main login/register form ───────────────────────────────────────────────
   return (
     <div
       className="flex-1 min-h-screen flex items-start justify-center bg-white px-8 pt-20"
-      style={{
-        backgroundImage: "linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px)",
-        backgroundSize: "60px 60px",
-      }}
+      style={{ backgroundImage: gridBg, backgroundSize: "60px 60px" }}
     >
       <div className="flex min-h-[calc(100vh-5rem)] w-full max-w-md flex-col">
         <h2 className="mb-8 text-3xl font-normal lowercase text-black">
           {activeTab === "login" ? "sign in" : "create account"}
         </h2>
 
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#F1EFE8] p-1">
-          <button type="button" onClick={() => handleTabChange("login")}
-            className={`rounded-lg px-4 py-2 text-sm font-normal lowercase transition ${activeTab === "login" ? "bg-white text-black" : "bg-[#F1EFE8] text-[#888780]"}`}
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#F1EFE8] p-1" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "login"}
+            onClick={() => handleTabChange("login")}
+            className={`rounded-lg px-4 py-2 text-sm font-normal lowercase transition ${activeTab === "login" ? "bg-white text-black" : `bg-[#F1EFE8] ${mutedText}`}`}
           >sign in</button>
-          <button type="button" onClick={() => handleTabChange("register")}
-            className={`rounded-lg px-4 py-2 text-sm font-normal lowercase transition ${activeTab === "register" ? "bg-white text-black" : "bg-[#F1EFE8] text-[#888780]"}`}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "register"}
+            onClick={() => handleTabChange("register")}
+            className={`rounded-lg px-4 py-2 text-sm font-normal lowercase transition ${activeTab === "register" ? "bg-white text-black" : `bg-[#F1EFE8] ${mutedText}`}`}
           >register</button>
         </div>
 
         <form className="mt-10 space-y-4" onSubmit={(e) => { e.preventDefault(); void handleSubmit(); }}>
+
+          {/* Username (register) or Email (login) */}
           <div>
-            <label className="mb-2 block text-[10px] font-light uppercase tracking-[0.2em] text-[#888780]">
+            <label htmlFor={activeTab === "login" ? "login-email" : "username"} className={labelClass}>
               {activeTab === "login" ? "EMAIL" : "USERNAME"}
             </label>
             <input
+              id={activeTab === "login" ? "login-email" : "username"}
               type={activeTab === "login" ? "email" : "text"}
               value={activeTab === "login" ? email : username}
               onChange={(e) => { resetAll(); activeTab === "login" ? setEmail(e.target.value) : setUsername(e.target.value); }}
               placeholder={activeTab === "login" ? "you@example.com" : undefined}
-              className="w-full rounded-lg border border-[#D3D1C7] bg-[#F7F7F5] px-4 py-3 text-[#888780] outline-none transition placeholder:text-[#888780] focus:border-[#EF9F27]"
+              className={inputClass}
             />
           </div>
 
+          {/* Email (register only) */}
           {activeTab === "register" && (
             <div>
-              <label className="mb-2 block text-[10px] font-light uppercase tracking-[0.2em] text-[#888780]">EMAIL</label>
-              <input type="email" placeholder="you@example.com" value={email}
+              <label htmlFor="register-email" className={labelClass}>EMAIL</label>
+              <input
+                id="register-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
                 onChange={(e) => { resetAll(); setEmail(e.target.value); }}
-                className="w-full rounded-lg border border-[#D3D1C7] bg-[#F7F7F5] px-4 py-3 text-[#888780] outline-none transition placeholder:text-[#888780] focus:border-[#EF9F27]"
+                className={inputClass}
               />
             </div>
           )}
 
-                    <div>
-                        <label className="mb-2 block text-[10px] font-light uppercase tracking-[0.2em] text-[#888780]">PASSWORD</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => { resetAll(); setPassword(e.target.value); }}
-                            className="w-full rounded-lg border border-[#D3D1C7] bg-[#F7F7F5] px-4 py-3 text-[#888780] outline-none transition placeholder:text-[#888780] focus:border-[#EF9F27]"
-                        />
-                    </div>
+          {/* Password */}
+          <div>
+            <label htmlFor="password" className={labelClass}>PASSWORD</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => { resetAll(); setPassword(e.target.value); }}
+              className={inputClass}
+            />
+          </div>
 
-                    {activeTab === "login" && (
-                      <button
-                        type="button"
-                        onClick={() => { setView("forgot"); setFormError(null); clearError(); }}
-                        className="text-left text-sm text-[#888780] underline"
-                      >
-                        forgot password?
-                      </button>
-                    )}
+          {activeTab === "login" && (
+            <button
+              type="button"
+              onClick={() => { setView("forgot"); setFormError(null); clearError(); }}
+              className={`text-left text-sm ${mutedText} underline`}
+            >
+              forgot password?
+            </button>
+          )}
 
-                    {activeTab === "register" && (
-                        <div>
-                            <label className="mb-2 block text-[10px] font-light uppercase tracking-[0.2em] text-[#888780]">CONFIRM PASSWORD</label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => { resetAll(); setConfirmPassword(e.target.value); }}
-                                className="w-full rounded-lg border border-[#D3D1C7] bg-[#F7F7F5] px-4 py-3 text-[#888780] outline-none transition placeholder:text-[#888780] focus:border-[#EF9F27]"
-                            />
-                        </div>
-                    )}
+          {/* Confirm password (register only) */}
+          {activeTab === "register" && (
+            <div>
+              <label htmlFor="confirm-password" className={labelClass}>CONFIRM PASSWORD</label>
+              <input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => { resetAll(); setConfirmPassword(e.target.value); }}
+                className={inputClass}
+              />
+            </div>
+          )}
 
-          {(formError || error) && <p className="text-sm text-[#B02A2A]">{formError ?? error}</p>}
+          {(formError || error) && (
+            <p className="text-sm text-[#B02A2A]" role="alert">{formError ?? error}</p>
+          )}
 
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="mt-4 w-full rounded-full bg-[#E24B4A] px-4 py-3 text-sm font-normal lowercase text-white transition hover:bg-[#E24B4A] hover:text-white hover:shadow-[0_6px_0_#4A1B0C] active:bg-white active:text-black active:translate-y-[1px]"
-                    >
-                        {isLoading ? "working..." : submitLabel}
-                    </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="mt-4 w-full rounded-full bg-[#E24B4A] px-4 py-3 text-sm font-normal lowercase text-white transition hover:bg-[#E24B4A] hover:text-white hover:shadow-[0_6px_0_#4A1B0C] active:bg-white active:text-black active:translate-y-[1px]"
+          >
+            {isLoading ? "working..." : submitLabel}
+          </button>
 
-          <p className="mt-auto pt-8 text-center text-xs italic lowercase text-[#888780]">
+          <p className={`mt-auto pt-8 text-center text-xs italic lowercase ${mutedText}`}>
             your identity is never shared with matches
           </p>
         </form>
