@@ -2,6 +2,8 @@
 
 Hot Take is a full-stack discussion and matching app. The project pairs users based on shared tags and overlapping language in their bios, then lets them start one-on-one chats.
 
+https://docs.google.com/presentation/d/1QMIYAQD4E3kM1VyMACKzKWgYqleeh9D-YEvbtLt5a-0/edit?usp=sharing 
+
 This repository currently contains:
 
 - a React 19 + Vite frontend in `frontend/`
